@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>印尼短信测试</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <aside class="control-panel">
+        <div class="panel-title">
+          <h1>印尼短信测试</h1>
+        </div>
+
+        <form id="generatorForm" class="form-grid">
+          <label class="field field-full">
+            <span>运营商</span>
+            <input type="hidden" name="carrier" value="telkomsel" />
+            <div class="custom-select" data-custom-select>
+              <button type="button" class="carrier-trigger" aria-haspopup="listbox" aria-expanded="false">
+                <span data-selected-label>Telkomsel</span>
+              </button>
+              <div class="carrier-options" role="listbox">
+                <button type="button" class="carrier-option is-selected" data-value="telkomsel" role="option" aria-selected="true">Telkomsel</button>
+                <button type="button" class="carrier-option" data-value="xl" role="option" aria-selected="false">XL</button>
+                <button type="button" class="carrier-option" data-value="indosat" role="option" aria-selected="false">Indosat</button>
+                <button type="button" class="carrier-option" data-value="smartfren" role="option" aria-selected="false">Smartfren</button>
+                <button type="button" class="carrier-option" data-value="three" role="option" aria-selected="false">Three</button>
+              </div>
+            </div>
+          </label>
+
+          <label class="field field-full">
+            <span>短信类型</span>
+            <input type="hidden" name="messageType" value="BC" />
+            <div class="custom-select" data-custom-select>
+              <button type="button" class="carrier-trigger" aria-haspopup="listbox" aria-expanded="false">
+                <span data-selected-label>BC</span>
+              </button>
+              <div class="carrier-options" role="listbox">
+                <button type="button" class="carrier-option" data-value="MK" role="option" aria-selected="false">MK</button>
+                <button type="button" class="carrier-option is-selected" data-value="BC" role="option" aria-selected="true">BC</button>
+              </div>
+            </div>
+          </label>
+
+          <label class="field field-full">
+            <span class="field-title">短信内容 <small>每条短信换行分隔</small></span>
+            <textarea name="messages" rows="9" spellcheck="false">Hello, type content here hello.com</textarea>
+            <strong class="gsm7-warning" id="gsm7Warning" hidden>检测到非 GSM7 字符</strong>
+          </label>
+
+          <div class="actions field-full">
+            <button type="submit" class="primary-button">生成截图</button>
+            <button type="button" class="secondary-button" id="downloadAllButton">一键保存</button>
+          </div>
+
+          <section class="replacement-preview field-full">
+            <header class="replacement-preview-header">
+              <h2>替换后内容预览</h2>
+              <button type="button" class="copy-button" id="copyModifiedContentButton">一键复制</button>
+            </header>
+            <textarea id="modifiedContentPreview" readonly placeholder="生成截图后显示替换后的短信内容"></textarea>
+          </section>
+        </form>
+      </aside>
+
+      <section class="preview-panel">
+        <header class="preview-header">
+          <h2>生成结果</h2>
+          <p id="resultMeta">共 0 张</p>
+        </header>
+        <div class="preview-grid" id="previewGrid"></div>
+      </section>
+    </main>
+
+    <script defer src="./script.js"></script>
+  </body>
+</html>

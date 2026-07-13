@@ -20,9 +20,8 @@ const ANDROID_TEMPLATE = {
 
 const ROBOTO = "Roboto, sans-serif";
 const MESSAGE_LAYOUT = {
-  shortMessageTop: 1003,
   minTop: 340,
-  targetBottom: 1300,
+  targetBottom: 1288,
   dividerOffset: 92,
   topTimeOffset: 44,
 };
@@ -695,7 +694,7 @@ function drawMessageBubble(ctx, layout, y) {
 }
 
 function drawComposer(ctx, data) {
-  drawText(ctx, `正在使用 ${data.carrierLabel} 发送`, 360, 1367, {
+  drawText(ctx, `正在使用 ${data.carrierLabel} 发送`, 360, 1355, {
     font: `400 22px ${ROBOTO}`,
     color: ANDROID_TEMPLATE.muted,
     align: "center",
@@ -735,7 +734,7 @@ function renderAndroidCanvas(data) {
 
   const messageLayout = measureMessageBubble(ctx, data.message);
   const naturalBubbleY = MESSAGE_LAYOUT.targetBottom - messageLayout.height;
-  const bubbleY = Math.min(MESSAGE_LAYOUT.shortMessageTop, Math.max(MESSAGE_LAYOUT.minTop, naturalBubbleY));
+  const bubbleY = Math.max(MESSAGE_LAYOUT.minTop, naturalBubbleY);
   const dividerY = bubbleY - MESSAGE_LAYOUT.dividerOffset;
   const topTimeY = bubbleY - MESSAGE_LAYOUT.topTimeOffset;
 

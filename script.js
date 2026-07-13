@@ -264,14 +264,7 @@ function createBatteryProfile(level) {
 
 function createBatteryProfiles(timePairs) {
   const baseLevel = createBaseBatteryLevel();
-  const timestamps = timePairs.map((timePair) => timePair.statusTimestamp);
-  const earliestTimestamp = Math.min(...timestamps);
-  const latestTimestamp = Math.max(...timestamps);
-  const shouldVaryWithinBatch = latestTimestamp > earliestTimestamp && baseLevel > BATTERY_MIN_LEVEL;
-  const profiles = timePairs.map((timePair) => {
-    const level = shouldVaryWithinBatch && timePair.statusTimestamp > earliestTimestamp ? baseLevel - 1 : baseLevel;
-    return createBatteryProfile(level);
-  });
+  const profiles = timePairs.map(() => createBatteryProfile(baseLevel));
 
   writeBatteryState(baseLevel, Date.now());
   return profiles;

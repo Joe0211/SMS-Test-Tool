@@ -20,16 +20,57 @@ const ANDROID_TEMPLATE = {
 
 const ROBOTO = "Roboto, sans-serif";
 const MESSAGE_LAYOUT = {
-  minTop: 1003,
+  shortMessageTop: 1003,
+  minTop: 340,
   targetBottom: 1300,
   dividerOffset: 92,
   topTimeOffset: 44,
 };
 const AVATAR_COLORS = ["#eb9550", "#72cae2", "#ed6bb3", "#a85ced", "#74b77a"];
+const BATTERY_STATE_KEY = "indonesiaSmsTestBatteryState";
+const BATTERY_MIN_LEVEL = 30;
+const BATTERY_MAX_LEVEL = 80;
+const BATTERY_DROP_INTERVAL_MINUTES = 15;
+const NOTIFICATION_ICON_ROTATION_MINUTES = 120;
+const STATUS_NOTIFICATION_ICONS = ["mail", "game", "sms"];
+const BATTERY_ICON_RANGES = {
+  low: { min: 30, max: 40, icon: "battery30to40" },
+  middle: { min: 50, max: 60, icon: "battery50to60" },
+  good: { min: 75, max: 85, icon: "battery75to85" },
+  high: { min: 86, max: 95, icon: "battery86to95" },
+  full: { min: 96, max: 100, icon: "battery96to100" },
+};
 const GSM7_BASIC_CHARS =
   "@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà";
 const GSM7_EXTENDED_CHARS = "^{}\\[~]|€";
 const GSM7_CHAR_SET = new Set([...GSM7_BASIC_CHARS, ...GSM7_EXTENDED_CHARS]);
+
+function createCellSignalSvg(level) {
+  const bars = [
+    '<path d="M40-160v-240h120v240H40Z"/>',
+    '<path d="M230-160v-320h120v320H230Z"/>',
+    '<path d="M420-160v-440h120v440H420Z"/>',
+    '<path d="M610-160v-520h120v520H610Z"/>',
+    '<path d="M800-160v-640h120v640H800Z"/>',
+  ];
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><g fill="#c7c7c7">${bars.join("")}</g><g fill="#434343">${bars
+    .slice(0, level)
+    .join("")}</g></svg>`;
+}
+
+function createWifiSignalSvg(level) {
+  const arcs = [
+    '<path d="M73-536 2-607q97-94 220.5-143.5T480-800q134 0 257.5 49.5T958-607l-71 71q-82-79-187-121.5T480-700q-115 0-220 42.5T73-536Z"/>',
+    '<path d="m186-422-70-71q74-71 168-109t197-38q103 0 196.5 37.5T845-494l-70 71q-60-57-136.5-87T480-540q-83 0-158.5 30.5T186-422Z"/>',
+    '<path d="m298-309-70-71q51-48 116-74t136-26q71 0 136 26t116 74l-70 71q-38-35-84.5-53T480-380q-51 0-97.5 18T298-309Z"/>',
+    '<path d="M423.5-183.5Q400-207 400-240t23.5-56.5Q447-320 480-320t56.5 23.5Q560-273 560-240t-23.5 56.5Q513-160 480-160t-56.5-23.5Z"/>',
+  ];
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"><g fill="#c7c7c7">${arcs.join("")}</g><g fill="#434343">${arcs
+    .slice(-level)
+    .join("")}</g></svg>`;
+}
 
 const CARRIERS = {
   telkomsel: {
@@ -82,6 +123,9 @@ const ICONS = {
   battery: `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#434343"><path d="M167.69-260q-44.87 0-76.28-31.41Q60-322.82 60-367.69v-224.62q0-44.87 31.41-76.28Q122.82-700 167.69-700H700q44.87 0 76.28 31.41 31.41 31.41 31.41 76.28v224.62q0 44.87-31.41 76.28Q744.87-260 700-260H167.69Zm0-60H700q20.27 0 33.98-13.71 13.71-13.71 13.71-33.98v-224.62q0-20.27-13.71-33.98Q720.27-640 700-640H167.69q-20.27 0-33.98 13.71Q120-612.58 120-592.31v224.62q0 20.27 13.71 33.98Q147.42-320 167.69-320Zm680-67.69v-184.23h16.15q15.37 0 25.76 10.39 10.4 10.4 10.4 25.76v111.92q0 15.37-10.4 25.76-10.39 10.4-25.76 10.4h-16.15Zm-680 20v-224.62h380v224.62h-380Z"/></svg>`,
   call: `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#434343"><path d="M798-120q-125 0-247-54.5T329-329Q229-429 174.5-551T120-798q0-18 12-30t30-12h162q14 0 25 9.5t13 22.5l26 140q2 16-1 27t-11 19l-97 98q20 37 47.5 71.5T387-386q31 31 65 57.5t72 48.5l94-94q9-9 23.5-13.5T670-390l138 28q14 4 23 14.5t9 23.5v162q0 18-12 30t-30 12Z"/></svg>`,
   cell: `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#434343"><path d="M40-160v-240h120v240H40Zm190 0v-320h120v320H230Zm190 0v-440h120v440H420Zm190 0v-520h120v520H610Zm190 0v-640h120v640H800Z"/></svg>`,
+  cell3: createCellSignalSvg(3),
+  cell4: createCellSignalSvg(4),
+  cell5: createCellSignalSvg(5),
   home: `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#666666"><path d="M621.5-338.5Q680-397 680-480t-58.5-141.5Q563-680 480-680t-141.5 58.5Q280-563 280-480t58.5 141.5Q397-280 480-280t141.5-58.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Z"/></svg>`,
   image: `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#434343"><path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560H200v560Zm40-80h480L570-480 450-320l-90-120-120 160Zm-40 80v-560 560Zm182.5-377.5Q400-595 400-620t-17.5-42.5Q365-680 340-680t-42.5 17.5Q280-645 280-620t17.5 42.5Q315-560 340-560t42.5-17.5Z"/></svg>`,
   navBack: `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#666666"><path d="M640-200 200-480l440-280v560Z"/></svg>`,
@@ -91,11 +135,21 @@ const ICONS = {
   user: `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#FFFFFF"><path d="M367-527q-47-47-47-113t47-113q47-47 113-47t113 47q47 47 47 113t-47 113q-47 47-113 47t-113-47ZM160-160v-112q0-34 17.5-62.5T224-378q62-31 126-46.5T480-440q66 0 130 15.5T736-378q29 15 46.5 43.5T800-272v112H160Z"/></svg>`,
   voice: `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#46152F"><path d="M280-240v-480h80v480h-80ZM440-80v-800h80v800h-80ZM120-400v-160h80v160h-80Zm480 160v-480h80v480h-80Zm160-160v-160h80v160h-80Z"/></svg>`,
   wifi: `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#434343"><path d="m298-309-70-71q51-48 116-74t136-26q71 0 136 26t116 74l-70 71q-38-35-84.5-53T480-380q-51 0-97.5 18T298-309ZM73-536 2-607q97-94 220.5-143.5T480-800q134 0 257.5 49.5T958-607l-71 71q-82-79-187-121.5T480-700q-115 0-220 42.5T73-536Zm113 114-70-71q74-71 168-109t197-38q103 0 196.5 37.5T845-494l-70 71q-60-57-136.5-87T480-540q-83 0-158.5 30.5T186-422Zm237.5 238.5Q400-207 400-240t23.5-56.5Q447-320 480-320t56.5 23.5Q560-273 560-240t-23.5 56.5Q513-160 480-160t-56.5-23.5Z"/></svg>`,
+  wifi2: createWifiSignalSvg(2),
+  wifi3: createWifiSignalSvg(3),
+  wifi4: createWifiSignalSvg(4),
 };
 
 const ICON_FILE_PATHS = {
   mail: "./icons-Android/mail.svg",
+  game: "./icons-Android/game.svg",
+  sms: "./icons-Android/sms.svg",
   more: "./icons-Android/more.svg",
+  battery30to40: "./icons-Android/battery30to40.svg",
+  battery50to60: "./icons-Android/battery50to60.svg",
+  battery75to85: "./icons-Android/battery75to85.svg",
+  battery86to95: "./icons-Android/battery86to95.svg",
+  battery96to100: "./icons-Android/battery96to100.svg",
 };
 
 const previewGrid = document.querySelector("#previewGrid");
@@ -135,24 +189,129 @@ function pickRandomItem(items) {
   return items[Math.floor(Math.random() * items.length)];
 }
 
-function createBatteryLevel() {
-  const beijingHour = Number(
+function getBeijingHour() {
+  return Number(
     new Intl.DateTimeFormat("en-US", {
       timeZone: "Asia/Shanghai",
       hour: "numeric",
       hourCycle: "h23",
     }).format(new Date())
   );
+}
 
-  if (beijingHour === 20) {
-    return "60";
+function getBatteryIconForLevel(level) {
+  if (level <= BATTERY_ICON_RANGES.low.max) return BATTERY_ICON_RANGES.low.icon;
+  if (level <= BATTERY_ICON_RANGES.middle.max) return BATTERY_ICON_RANGES.middle.icon;
+  if (level <= BATTERY_ICON_RANGES.good.max) return BATTERY_ICON_RANGES.good.icon;
+  if (level <= BATTERY_ICON_RANGES.high.max) return BATTERY_ICON_RANGES.high.icon;
+  return BATTERY_ICON_RANGES.full.icon;
+}
+
+function clampBatteryLevel(level) {
+  return Math.max(BATTERY_MIN_LEVEL, Math.min(BATTERY_MAX_LEVEL, level));
+}
+
+function readBatteryState() {
+  try {
+    const savedState = JSON.parse(localStorage.getItem(BATTERY_STATE_KEY) || "null");
+    if (!savedState || typeof savedState.level !== "number" || typeof savedState.updatedAt !== "number") {
+      return null;
+    }
+    return savedState;
+  } catch {
+    return null;
+  }
+}
+
+function writeBatteryState(level, updatedAt) {
+  try {
+    localStorage.setItem(BATTERY_STATE_KEY, JSON.stringify({ level, updatedAt }));
+  } catch {
+    // localStorage may be unavailable in private or restricted browsing.
+  }
+}
+
+function createInitialBatteryLevel() {
+  return 74 + Math.floor(Math.random() * 7);
+}
+
+function createBaseBatteryLevel() {
+  const now = Date.now();
+  const savedState = readBatteryState();
+
+  if (!savedState) {
+    const initialLevel = createInitialBatteryLevel();
+    writeBatteryState(initialLevel, now);
+    return initialLevel;
   }
 
-  if (beijingHour > 20) {
-    return "80";
+  const previousLevel = clampBatteryLevel(savedState.level);
+  const elapsedMinutes = Math.max(0, Math.floor((now - savedState.updatedAt) / 60000));
+  const dropAmount = Math.floor(elapsedMinutes / BATTERY_DROP_INTERVAL_MINUTES);
+  const nextLevel = clampBatteryLevel(previousLevel - dropAmount);
+
+  writeBatteryState(nextLevel, now);
+  return nextLevel;
+}
+
+function createBatteryProfile(level) {
+  const displayLevel = clampBatteryLevel(level);
+
+  return {
+    batteryIcon: getBatteryIconForLevel(displayLevel),
+    batteryLevel: String(displayLevel),
+  };
+}
+
+function createBatteryProfiles(timePairs) {
+  const baseLevel = createBaseBatteryLevel();
+  const timestamps = timePairs.map((timePair) => timePair.statusTimestamp);
+  const earliestTimestamp = Math.min(...timestamps);
+  const latestTimestamp = Math.max(...timestamps);
+  const shouldVaryWithinBatch = latestTimestamp > earliestTimestamp && baseLevel > BATTERY_MIN_LEVEL;
+  const profiles = timePairs.map((timePair) => {
+    const level = shouldVaryWithinBatch && timePair.statusTimestamp > earliestTimestamp ? baseLevel - 1 : baseLevel;
+    return createBatteryProfile(level);
+  });
+
+  writeBatteryState(baseLevel, Date.now());
+  return profiles;
+}
+
+function createStatusNotificationProfile() {
+  const slot = Math.floor(Date.now() / (NOTIFICATION_ICON_ROTATION_MINUTES * 60 * 1000));
+
+  return {
+    notificationIcon: STATUS_NOTIFICATION_ICONS[slot % STATUS_NOTIFICATION_ICONS.length],
+  };
+}
+
+function createStatusSignalProfiles(count) {
+  const baseProfiles = [
+    { cellIcon: "cell4", wifiIcon: "wifi3" },
+    { cellIcon: "cell4", wifiIcon: "wifi4" },
+    { cellIcon: "cell5", wifiIcon: "wifi4" },
+  ];
+  const variantProfiles = [
+    { cellIcon: "cell3", wifiIcon: "wifi3" },
+    { cellIcon: "cell4", wifiIcon: "wifi2" },
+    { cellIcon: "cell5", wifiIcon: "wifi3" },
+  ];
+  const baseProfile = pickRandomItem(baseProfiles);
+  const profiles = Array.from({ length: count }, () => ({ ...baseProfile }));
+  const variationCount = count >= 8 ? 2 : count >= 4 ? 1 : 0;
+  const usedIndexes = new Set();
+
+  while (usedIndexes.size < variationCount) {
+    const index = Math.floor(Math.random() * count);
+    usedIndexes.add(index);
   }
 
-  return String(80 - beijingHour);
+  usedIndexes.forEach((index) => {
+    profiles[index] = { ...pickRandomItem(variantProfiles) };
+  });
+
+  return profiles;
 }
 
 function findNonGsm7Characters(value) {
@@ -199,6 +358,7 @@ function getBeijingTimePair() {
   return {
     statusTime: formatBeijingTime(date),
     unreadTime: formatBeijingTime(unreadDate),
+    statusTimestamp: date.getTime(),
   };
 }
 
@@ -382,11 +542,11 @@ function drawStatusBar(ctx, data) {
     color: ANDROID_TEMPLATE.text,
   });
 
-  drawIconCentered(ctx, "mail", 125, centerY, 24);
+  drawIconCentered(ctx, data.notificationIcon || "mail", 125, centerY, 24);
   drawIconCentered(ctx, "more", 156, centerY, 24);
-  drawIconCentered(ctx, "cell", 524, centerY, 28);
-  drawIconCentered(ctx, "wifi", 563, centerY, 30);
-  drawIconCentered(ctx, "battery", 609, centerY, 41);
+  drawIconCentered(ctx, data.cellIcon || "cell", 524, centerY, 28);
+  drawIconCentered(ctx, data.wifiIcon || "wifi", 563, centerY, 30);
+  drawIconCentered(ctx, data.batteryIcon || "battery", 609, centerY, 41);
   drawText(ctx, data.batteryLevel, 668, 39, {
     font: `500 24px ${ROBOTO}`,
     color: ANDROID_TEMPLATE.text,
@@ -449,29 +609,61 @@ function drawDividerLabel(ctx, y) {
 }
 
 function measureMessageBubble(ctx, message) {
-  ctx.font = `400 30px ${ROBOTO}`;
-
   const width = 628;
   const paddingX = 32;
   const paddingTop = 24;
   const paddingBottom = 18;
-  const lineHeight = 42;
-  const lines = layoutRichText(ctx, message, width - paddingX * 2, lineHeight);
-  const height = Math.max(88, lines.length * lineHeight + paddingTop + paddingBottom);
+  const maxHeight = MESSAGE_LAYOUT.targetBottom - MESSAGE_LAYOUT.minTop;
+  const variants = [
+    { fontSize: 30, lineHeight: 42 },
+    { fontSize: 28, lineHeight: 38 },
+    { fontSize: 26, lineHeight: 35 },
+  ];
+  let selected = variants[0];
+  let lines = [];
+
+  for (const variant of variants) {
+    ctx.font = `400 ${variant.fontSize}px ${ROBOTO}`;
+    const measuredLines = layoutRichText(ctx, message, width - paddingX * 2, variant.lineHeight);
+    const measuredHeight = Math.max(88, measuredLines.length * variant.lineHeight + paddingTop + paddingBottom);
+    selected = variant;
+    lines = measuredLines;
+
+    if (measuredHeight <= maxHeight) {
+      break;
+    }
+  }
+
+  const maxLines = Math.max(1, Math.floor((maxHeight - paddingTop - paddingBottom) / selected.lineHeight));
+  const isTruncated = lines.length > maxLines;
+  if (isTruncated) {
+    lines = lines.slice(0, maxLines);
+    const lastLine = lines[lines.length - 1] || [];
+    const ellipsis = { text: "...", type: "text", width: ctx.measureText("...").width };
+
+    while (lastLine.length && lastLine.reduce((sum, chunk) => sum + chunk.width, ellipsis.width) > width - paddingX * 2) {
+      lastLine.pop();
+    }
+
+    lastLine.push(ellipsis);
+  }
+
+  const height = Math.max(88, lines.length * selected.lineHeight + paddingTop + paddingBottom);
 
   return {
     x: 16,
     width,
     paddingX,
     paddingTop,
-    lineHeight,
+    lineHeight: selected.lineHeight,
+    fontSize: selected.fontSize,
     lines,
     height,
   };
 }
 
 function drawMessageBubble(ctx, layout, y) {
-  ctx.font = `400 30px ${ROBOTO}`;
+  ctx.font = `400 ${layout.fontSize || 30}px ${ROBOTO}`;
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
 
@@ -542,7 +734,8 @@ function renderAndroidCanvas(data) {
   drawHeader(ctx, data);
 
   const messageLayout = measureMessageBubble(ctx, data.message);
-  const bubbleY = Math.max(MESSAGE_LAYOUT.minTop, MESSAGE_LAYOUT.targetBottom - messageLayout.height);
+  const naturalBubbleY = MESSAGE_LAYOUT.targetBottom - messageLayout.height;
+  const bubbleY = Math.min(MESSAGE_LAYOUT.shortMessageTop, Math.max(MESSAGE_LAYOUT.minTop, naturalBubbleY));
   const dividerY = bubbleY - MESSAGE_LAYOUT.dividerOffset;
   const topTimeY = bubbleY - MESSAGE_LAYOUT.topTimeOffset;
 
@@ -885,16 +1078,23 @@ async function generateImages(formData) {
   );
   updateModifiedContentPreview(analyzedMessages);
 
+  const timePairs = analyzedMessages.map(() => getBeijingTimePair());
+  const batteryProfiles = createBatteryProfiles(timePairs);
+  const statusSignalProfiles = createStatusSignalProfiles(analyzedMessages.length);
+  const statusNotificationProfile = createStatusNotificationProfile();
   const images = analyzedMessages.map((message, index) => {
-    const { statusTime, unreadTime } = getBeijingTimePair();
+    const { statusTime, unreadTime } = timePairs[index];
     const carrierContact = createCarrierContact(formData.carrier);
     const avatarColor = pickRandomItem(AVATAR_COLORS);
-    const batteryLevel = createBatteryLevel();
+    const batteryProfile = batteryProfiles[index];
+    const statusSignalProfile = statusSignalProfiles[index];
     const canvas = renderAndroidCanvas({
       ...formData,
       ...carrierContact,
+      ...statusSignalProfile,
+      ...batteryProfile,
+      ...statusNotificationProfile,
       avatarColor,
-      batteryLevel,
       statusTime,
       unreadTime,
       message,

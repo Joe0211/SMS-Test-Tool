@@ -114,6 +114,7 @@ const state = {
   icons: {},
   images: [],
   modifiedContents: [],
+  currentPreviewIndex: 0,
 };
 
 const urlRegex =
@@ -562,6 +563,7 @@ function renderAndroidCanvas(data) {
 function buildCard(imageData, index, message) {
   const article = document.createElement("article");
   article.className = "preview-card";
+  article.dataset.previewIndex = String(index);
 
   const imageWrap = document.createElement("div");
   imageWrap.className = "preview-image-wrap";
@@ -583,8 +585,148 @@ function buildCard(imageData, index, message) {
   return article;
 }
 
+function updatePreviewCarousel() {
+  const cards = Array.from(previewGrid.querySelectorAll(".preview-card"));
+  const hasImages = state.images.length > 0;
+
+  cards.forEach((card, index) => {
+    card.classList.toggle("is-active", index === state.currentPreviewIndex);
+  });
+
+  const currentLabel = previewGrid.querySelector("[data-current-preview]");
+  if (currentLabel && hasImages) {
+    currentLabel.textContent = `${state.currentPreviewIndex + 1} / ${state.images.length}`;
+  }
+
+  const previousButton = previewGrid.querySelector("[data-preview-previous]");
+  const nextButton = previewGrid.querySelector("[data-preview-next]");
+  if (previousButton && nextButton) {
+    const shouldDisable = state.images.length <= 1;
+    previousButton.disabled = shouldDisable;
+    nextButton.disabled = shouldDisable;
+  }
+}
+
+function showPreviousPreview() {
+  if (state.images.length <= 1) return;
+  state.currentPreviewIndex = (state.currentPreviewIndex - 1 + state.images.length) % state.images.length;
+  updatePreviewCarousel();
+}
+
+function showNextPreview() {
+  if (state.images.length <= 1) return;
+  state.currentPreviewIndex = (state.currentPreviewIndex + 1) % state.images.length;
+  updatePreviewCarousel();
+}
+
+function bindPreviewSwipe(card) {
+  let startX = 0;
+  let startY = 0;
+
+  card.addEventListener(
+    "touchstart",
+    (event) => {
+      const touch = event.touches[0];
+      startX = touch.clientX;
+      startY = touch.clientY;
+    },
+    { passive: true }
+  );
+
+  card.addEventListener(
+    "touchend",
+    (event) => {
+      const touch = event.changedTouches[0];
+      const deltaX = touch.clientX - startX;
+      const deltaY = touch.clientY - startY;
+
+      if (Math.abs(deltaX) < 45 || Math.abs(deltaX) < Math.abs(deltaY) * 1.35) return;
+
+      if (deltaX < 0) {
+        showNextPreview();
+      } else {
+        showPreviousPreview();
+      }
+    },
+    { passive: true }
+  );
+}
+
+function renderPreviewImages(images) {
+  previewGrid.innerHTML = "";
+  previewGrid.classList.remove("is-empty");
+  previewGrid.classList.toggle("is-carousel", images.length > 0);
+  state.currentPreviewIndex = 0;
+
+  images.forEach((imageData, index) => {
+    const card = buildCard(imageData, index, imageData.message);
+    bindPreviewSwipe(card);
+    previewGrid.appendChild(card);
+  });
+
+  if (images.length > 0) {
+    const controls = document.createElement("div");
+    controls.className = "carousel-controls";
+
+    const previousButton = document.createElement("button");
+    previousButton.type = "button";
+    previousButton.textContent = "上一张";
+    previousButton.dataset.previewPrevious = "true";
+
+    const currentLabel = document.createElement("span");
+    currentLabel.dataset.currentPreview = "true";
+
+    const nextButton = document.createElement("button");
+    nextButton.type = "button";
+    nextButton.textContent = "下一张";
+    nextButton.dataset.previewNext = "true";
+
+    previousButton.addEventListener("click", () => {
+      showPreviousPreview();
+    });
+
+    nextButton.addEventListener("click", () => {
+      showNextPreview();
+    });
+
+    controls.append(previousButton, currentLabel, nextButton);
+    previewGrid.appendChild(controls);
+  }
+
+  updatePreviewCarousel();
+}
+
 function isLocalServerMode() {
   return location.protocol === "http:" || location.protocol === "https:";
+}
+
+function isMobileViewport() {
+  return window.matchMedia("(max-width: 980px)").matches;
+}
+
+async function dataUrlToFile(dataUrl, filename) {
+  const blob = await fetch(dataUrl).then((response) => response.blob());
+  return new File([blob], filename, { type: blob.type || "image/png" });
+}
+
+async function shareImagesToMobileAlbum(images) {
+  if (!navigator.canShare || !navigator.share) {
+    return false;
+  }
+
+  const files = await Promise.all(images.map((image) => dataUrlToFile(image.url, image.filename)));
+
+  if (!navigator.canShare({ files })) {
+    return false;
+  }
+
+  await navigator.share({
+    files,
+    title: "短信截图",
+    text: "保存生成的短信截图",
+  });
+
+  return true;
 }
 
 function initCustomSelects() {
@@ -639,7 +781,9 @@ async function saveImagesToOutputs(images, triggerButton = downloadAllButton) {
   triggerButton.textContent = "下载中...";
 
   try {
-    if ("showDirectoryPicker" in window) {
+    if (isMobileViewport() && (await shareImagesToMobileAlbum(images))) {
+      resultMeta.textContent = `已打开 ${images.length} 张 PNG 的保存面板`;
+    } else if ("showDirectoryPicker" in window) {
       const directoryHandle = await window.showDirectoryPicker();
 
       for (const image of images) {
@@ -679,6 +823,7 @@ async function saveImagesToOutputs(images, triggerButton = downloadAllButton) {
 function renderEmptyState(text = "输入短信内容后点击“生成截图”，这里会出现对应的预览图片。") {
   previewGrid.innerHTML = "";
   previewGrid.classList.add("is-empty");
+  previewGrid.classList.remove("is-carousel");
   const empty = document.createElement("div");
   empty.className = "empty-state";
   empty.textContent = text;
@@ -763,11 +908,7 @@ async function generateImages(formData) {
 
   state.images = images;
   resultMeta.textContent = `共 ${images.length} 张`;
-  previewGrid.innerHTML = "";
-  previewGrid.classList.remove("is-empty");
-  images.forEach((imageData, index) => {
-    previewGrid.appendChild(buildCard(imageData, index, imageData.message));
-  });
+  renderPreviewImages(images);
 }
 
 form.addEventListener("submit", (event) => {

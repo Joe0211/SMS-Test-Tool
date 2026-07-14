@@ -175,8 +175,8 @@ const urlRegex =
 
 function splitMessages(rawValue) {
   return rawValue
-    .split("\n")
-    .map((line) => line.trim())
+    .split(/\r?\n\s*\r?\n/)
+    .map((message) => message.trim())
     .filter(Boolean);
 }
 
@@ -196,6 +196,20 @@ function getBeijingHour() {
       hourCycle: "h23",
     }).format(new Date())
   );
+}
+
+function getBeijingDateKey(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const year = parts.find((part) => part.type === "year")?.value || "1970";
+  const month = parts.find((part) => part.type === "month")?.value || "01";
+  const day = parts.find((part) => part.type === "day")?.value || "01";
+
+  return `${year}-${month}-${day}`;
 }
 
 function getBatteryIconForLevel(level) {
@@ -224,21 +238,25 @@ function readBatteryState() {
 
 function writeBatteryState(level, updatedAt) {
   try {
-    localStorage.setItem(BATTERY_STATE_KEY, JSON.stringify({ level, updatedAt }));
+    localStorage.setItem(
+      BATTERY_STATE_KEY,
+      JSON.stringify({ level, updatedAt, dateKey: getBeijingDateKey(new Date(updatedAt)) })
+    );
   } catch {
     // localStorage may be unavailable in private or restricted browsing.
   }
 }
 
 function createInitialBatteryLevel() {
-  return 74 + Math.floor(Math.random() * 7);
+  return BATTERY_MAX_LEVEL;
 }
 
 function createBaseBatteryLevel() {
   const now = Date.now();
   const savedState = readBatteryState();
+  const currentDateKey = getBeijingDateKey(new Date(now));
 
-  if (!savedState) {
+  if (!savedState || (savedState.dateKey || getBeijingDateKey(new Date(savedState.updatedAt))) !== currentDateKey) {
     const initialLevel = createInitialBatteryLevel();
     writeBatteryState(initialLevel, now);
     return initialLevel;

@@ -29,7 +29,7 @@ const AVATAR_COLORS = ["#eb9550", "#72cae2", "#ed6bb3", "#a85ced", "#74b77a"];
 const BATTERY_STATE_KEY = "indonesiaSmsTestBatteryState";
 const BATTERY_MIN_LEVEL = 30;
 const BATTERY_MAX_LEVEL = 80;
-const BATTERY_DROP_INTERVAL_MINUTES = 15;
+const BATTERY_DROP_INTERVAL_MINUTES = 30;
 const NOTIFICATION_ICON_ROTATION_MINUTES = 120;
 const STATUS_NOTIFICATION_ICONS = ["mail", "game", "sms"];
 const BATTERY_ICON_RANGES = {
@@ -212,6 +212,19 @@ function getBeijingDateKey(date = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
+function getBeijingMinuteOfDay(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Shanghai",
+    hour: "numeric",
+    minute: "numeric",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const hour = Number(parts.find((part) => part.type === "hour")?.value || 0);
+  const minute = Number(parts.find((part) => part.type === "minute")?.value || 0);
+
+  return hour * 60 + minute;
+}
+
 function getBatteryIconForLevel(level) {
   if (level <= BATTERY_ICON_RANGES.low.max) return BATTERY_ICON_RANGES.low.icon;
   if (level <= BATTERY_ICON_RANGES.middle.max) return BATTERY_ICON_RANGES.middle.icon;
@@ -222,18 +235,6 @@ function getBatteryIconForLevel(level) {
 
 function clampBatteryLevel(level) {
   return Math.max(BATTERY_MIN_LEVEL, Math.min(BATTERY_MAX_LEVEL, level));
-}
-
-function readBatteryState() {
-  try {
-    const savedState = JSON.parse(localStorage.getItem(BATTERY_STATE_KEY) || "null");
-    if (!savedState || typeof savedState.level !== "number" || typeof savedState.updatedAt !== "number") {
-      return null;
-    }
-    return savedState;
-  } catch {
-    return null;
-  }
 }
 
 function writeBatteryState(level, updatedAt) {
@@ -253,19 +254,9 @@ function createInitialBatteryLevel() {
 
 function createBaseBatteryLevel() {
   const now = Date.now();
-  const savedState = readBatteryState();
-  const currentDateKey = getBeijingDateKey(new Date(now));
-
-  if (!savedState || (savedState.dateKey || getBeijingDateKey(new Date(savedState.updatedAt))) !== currentDateKey) {
-    const initialLevel = createInitialBatteryLevel();
-    writeBatteryState(initialLevel, now);
-    return initialLevel;
-  }
-
-  const previousLevel = clampBatteryLevel(savedState.level);
-  const elapsedMinutes = Math.max(0, Math.floor((now - savedState.updatedAt) / 60000));
+  const elapsedMinutes = getBeijingMinuteOfDay(new Date(now));
   const dropAmount = Math.floor(elapsedMinutes / BATTERY_DROP_INTERVAL_MINUTES);
-  const nextLevel = clampBatteryLevel(previousLevel - dropAmount);
+  const nextLevel = clampBatteryLevel(createInitialBatteryLevel() - dropAmount);
 
   writeBatteryState(nextLevel, now);
   return nextLevel;

@@ -220,8 +220,22 @@ textarea {
   resize: none;
 }
 
-.gsm7-warning {
+.message-length-hint {
   display: block;
+  white-space: pre-line;
+  border: 1px solid #f3c56b;
+  border-radius: 7px;
+  padding: 9px 10px;
+  color: #8a5a00;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+  background: #fff7df;
+}
+
+.gsm7-character-hint {
+  display: block;
+  white-space: pre-line;
   border: 1px solid #f5b5b5;
   border-radius: 7px;
   padding: 9px 10px;
@@ -232,7 +246,8 @@ textarea {
   background: #fff1f1;
 }
 
-.gsm7-warning[hidden] {
+.message-length-hint[hidden],
+.gsm7-character-hint[hidden] {
   display: none;
 }
 

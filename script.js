@@ -159,7 +159,8 @@ const copyModifiedContentButton = document.querySelector("#copyModifiedContentBu
 const customSelects = Array.from(document.querySelectorAll("[data-custom-select]"));
 const messagesInput = form.querySelector('textarea[name="messages"]');
 const modifiedContentPreview = document.querySelector("#modifiedContentPreview");
-const gsm7Warning = document.querySelector("#gsm7Warning");
+const messageLengthHint = document.querySelector("#messageLengthHint");
+const gsm7CharacterHint = document.querySelector("#gsm7CharacterHint");
 const analysisEndpoint = "/analyze-content";
 const CHECK_SMALL_ICON_PATH = "./icons-Android/check_small.svg";
 
@@ -175,7 +176,7 @@ const urlRegex =
 
 function splitMessages(rawValue) {
   return rawValue
-    .split(/\r?\n\s*\r?\n/)
+    .split(/\r?\n/)
     .map((message) => message.trim())
     .filter(Boolean);
 }
@@ -319,17 +320,82 @@ function findNonGsm7Characters(value) {
   return [...new Set([...value].filter((character) => !GSM7_CHAR_SET.has(character)))];
 }
 
-function updateGsm7Warning() {
-  const invalidCharacters = findNonGsm7Characters(messagesInput.value);
+function getGsm7Length(value) {
+  return [...value].reduce((length, character) => {
+    return length + (GSM7_EXTENDED_CHARS.includes(character) ? 2 : 1);
+  }, 0);
+}
 
-  if (!invalidCharacters.length) {
-    gsm7Warning.hidden = true;
-    gsm7Warning.textContent = "检测到非 GSM7 字符";
+function countSmsSegments(length, singleLimit, concatLimit) {
+  if (!length) return 0;
+  return length <= singleLimit ? 1 : Math.ceil(length / concatLimit);
+}
+
+function createMessagePreview(message) {
+  const compactMessage = message.replace(/\s+/g, " ").trim();
+  return compactMessage.length > 28 ? `${compactMessage.slice(0, 28)}...` : compactMessage;
+}
+
+function getMessageLengthDetail(message, index) {
+  const invalidCharacters = findNonGsm7Characters(message);
+  const usesGsm7 = !invalidCharacters.length;
+  const encoding = usesGsm7 ? "GSM7" : "UCS2";
+  const length = usesGsm7 ? getGsm7Length(message) : [...message].length;
+  const singleLimit = usesGsm7 ? 160 : 70;
+  const concatLimit = usesGsm7 ? 153 : 67;
+  const segmentCount = countSmsSegments(length, singleLimit, concatLimit);
+
+  return {
+    concatLimit,
+    encoding,
+    invalidCharacters,
+    index,
+    isOverLimit: length > singleLimit,
+    length,
+    preview: createMessagePreview(message),
+    segmentCount,
+    singleLimit,
+  };
+}
+
+function updateMessageLengthHint() {
+  const messages = splitMessages(messagesInput.value);
+
+  if (!messages.length) {
+    messageLengthHint.hidden = true;
+    messageLengthHint.textContent = "";
+    gsm7CharacterHint.hidden = true;
+    gsm7CharacterHint.textContent = "";
     return;
   }
 
-  gsm7Warning.hidden = false;
-  gsm7Warning.textContent = `检测到非 GSM7 字符：${invalidCharacters.join(" ")}`;
+  const details = messages.map((message, index) => getMessageLengthDetail(message, index));
+  const overLimitDetails = details.filter((detail) => detail.isOverLimit);
+  const invalidCharacterDetails = details.filter((detail) => detail.invalidCharacters.length);
+
+  if (!overLimitDetails.length) {
+    messageLengthHint.hidden = true;
+    messageLengthHint.textContent = "";
+  } else {
+    messageLengthHint.hidden = false;
+    messageLengthHint.textContent = overLimitDetails
+      .map((detail) => {
+        return `第${detail.index + 1}条文案 ${detail.encoding} ${detail.length}/${detail.concatLimit} ｜计费数 ${detail.segmentCount}： ${detail.preview}`;
+      })
+      .join("\n\n");
+  }
+
+  if (!invalidCharacterDetails.length) {
+    gsm7CharacterHint.hidden = true;
+    gsm7CharacterHint.textContent = "";
+  } else {
+    gsm7CharacterHint.hidden = false;
+    gsm7CharacterHint.textContent = invalidCharacterDetails
+      .map((detail) => {
+        return `第${detail.index + 1}条文案 检测到非 GSM7 字符，将按 UCS2 计算：${detail.invalidCharacters.join(" ")}`;
+      })
+      .join("\n\n");
+  }
 }
 
 function formatIndonesianNumber(rawNumber) {
@@ -1114,7 +1180,7 @@ async function generateImages(formData) {
 
 form.addEventListener("submit", (event) => {
   event.preventDefault();
-  updateGsm7Warning();
+  updateMessageLengthHint();
   const submitButton = event.submitter || form.querySelector('button[type="submit"]');
   const originalText = submitButton.textContent;
 
@@ -1164,8 +1230,8 @@ copyModifiedContentButton.addEventListener("click", async () => {
 });
 
 initCustomSelects();
-messagesInput.addEventListener("input", updateGsm7Warning);
-updateGsm7Warning();
+messagesInput.addEventListener("input", updateMessageLengthHint);
+updateMessageLengthHint();
 updateModifiedContentPreview([]);
 renderEmptyState("正在加载安卓图标...");
 loadIcons()

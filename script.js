@@ -417,10 +417,11 @@ function createCarrierContact(carrier) {
   };
 }
 
+// time function
 function getBeijingTimePair() {
-  const offsetMinutes = Math.floor(Math.random() * 3);
+  const offsetMinutes = Math.floor(Math.random() * 2);
   const date = new Date(Date.now() - offsetMinutes * 60 * 1000);
-  const unreadDate = new Date(date.getTime() - Math.floor(Math.random() * 2) * 60 * 1000);
+  const unreadDate = new Date(date.getTime() - Math.floor(Math.random() * 1) * 60 * 1000);
 
   return {
     statusTime: formatBeijingTime(date),
